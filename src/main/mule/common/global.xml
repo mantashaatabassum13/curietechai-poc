@@ -1,0 +1,38 @@
+<?xml version="1.0" encoding="UTF-8"?>
+
+<mule xmlns:email="http://www.mulesoft.org/schema/mule/email"
+	xmlns:tls="http://www.mulesoft.org/schema/mule/tls"
+	xmlns:secure-properties="http://www.mulesoft.org/schema/mule/secure-properties"
+	xmlns:adtalem-core="http://www.mulesoft.org/schema/mule/adtalem-core"
+	xmlns:api-gateway="http://www.mulesoft.org/schema/mule/api-gateway"
+	xmlns:json-logger="http://www.mulesoft.org/schema/mule/json-logger"
+	xmlns:http="http://www.mulesoft.org/schema/mule/http"
+	xmlns="http://www.mulesoft.org/schema/mule/core"
+	xmlns:doc="http://www.mulesoft.org/schema/mule/documentation"
+	xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+	xsi:schemaLocation="
+http://www.mulesoft.org/schema/mule/email http://www.mulesoft.org/schema/mule/email/current/mule-email.xsd 
+http://www.mulesoft.org/schema/mule/http http://www.mulesoft.org/schema/mule/http/current/mule-http.xsd http://www.mulesoft.org/schema/mule/core 
+http://www.mulesoft.org/schema/mule/core/current/mule.xsd
+http://www.mulesoft.org/schema/mule/json-logger http://www.mulesoft.org/schema/mule/json-logger/current/mule-json-logger.xsd
+http://www.mulesoft.org/schema/mule/api-gateway http://www.mulesoft.org/schema/mule/api-gateway/current/mule-api-gateway.xsd
+http://www.mulesoft.org/schema/mule/adtalem-core http://www.mulesoft.org/schema/mule/adtalem-core/current/mule-adtalem-core.xsd
+http://www.mulesoft.org/schema/mule/secure-properties http://www.mulesoft.org/schema/mule/secure-properties/current/mule-secure-properties.xsd
+http://www.mulesoft.org/schema/mule/tls http://www.mulesoft.org/schema/mule/tls/current/mule-tls.xsd">
+	<configuration doc:name="Configuration"
+		doc:id="da15166a-5d9d-4b77-a80d-4743c6e90e45"
+		defaultErrorHandler-ref="common-exception-handler" />
+	<configuration-properties
+		doc:name="Configuration properties"
+		doc:id="77d40699-0746-4cbf-a9b5-b9460b401894"
+		file="properties/config-${mule.env}.yaml" />
+	<secure-properties:config name="Secure_Properties_Config" doc:name="Secure Properties Config" doc:id="94934815-b2cd-47da-986a-dd87cc29345a" file="properties/secure/config-${mule.env}-secure.yaml" key="${mule.key}" >
+	</secure-properties:config>
+	<configuration-properties
+		doc:name="Configuration properties"
+		doc:id="dd661869-d2fe-461c-85f2-4dd2c7f7243f"
+		file="properties\common\common.yaml" />
+	<http:listener-config name="development_template_listener_configuration" doc:name="HTTP Listener config" doc:id="894a0492-33c6-42a3-b67c-4bd112c8d1cf" >
+		<http:listener-connection host="${http.host}" port="${http.port}" readTimeout="${http.readTimeout}"/>
+	</http:listener-config>
+</mule>

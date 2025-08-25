@@ -1,0 +1,19 @@
+<?xml version="1.0" encoding="UTF-8"?>
+
+<mule xmlns:ee="http://www.mulesoft.org/schema/mule/ee/core" xmlns="http://www.mulesoft.org/schema/mule/core"
+	xmlns:doc="http://www.mulesoft.org/schema/mule/documentation"
+	xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://www.mulesoft.org/schema/mule/core http://www.mulesoft.org/schema/mule/core/current/mule.xsd
+http://www.mulesoft.org/schema/mule/ee/core http://www.mulesoft.org/schema/mule/ee/core/current/mule-ee.xsd">
+	<sub-flow name="method-feature-sub-flow" doc:id="c386ba24-eecd-4f96-86ed-61f6609d23e8" >
+		<logger level="INFO" doc:name="START" doc:id="4b8451b4-f771-48b3-b357-4f08848cd103" message='#[%dw 2.0&#10;output application/json&#10;---&#10;{&#10;    flow : "Start of flow : " ++ flow.name,&#10;    message: "Template Demo Flow Started",&#10;    correlationId: vars.correlationId&#10;}]'/>
+		<ee:transform doc:name="Template Payload" doc:id="530e9cde-c5c9-40ea-b254-80945b9d7668" >
+			<ee:message >
+				<ee:set-payload ><![CDATA[%dw 2.0
+output application/java
+---
+"Template Payload"]]></ee:set-payload>
+			</ee:message>
+		</ee:transform>
+		<logger level="INFO" doc:name="END" doc:id="e27f320b-bd31-49ac-bfd6-f6303cd0cabd" message='#[%dw 2.0&#10;output application/json&#10;---&#10;{&#10;    flow : "End of flow : " ++ flow.name,&#10;    message: "Template Demo Flow Ended",&#10;    correlationId: vars.correlationId&#10;}]'/>
+	</sub-flow>
+</mule>
