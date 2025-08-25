@@ -7,10 +7,12 @@
 	xmlns:api-gateway="http://www.mulesoft.org/schema/mule/api-gateway"
 	xmlns:json-logger="http://www.mulesoft.org/schema/mule/json-logger"
 	xmlns:http="http://www.mulesoft.org/schema/mule/http"
+	xmlns:salesforce="http://www.mulesoft.org/schema/mule/salesforce"
+	xmlns:netsuite="http://www.mulesoft.org/schema/mule/netsuite"
 	xmlns="http://www.mulesoft.org/schema/mule/core"
 	xmlns:doc="http://www.mulesoft.org/schema/mule/documentation"
 	xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
-	xsi:schemaLocation="
+	xsi:schemaLocation="http://www.mulesoft.org/schema/mule/salesforce http://www.mulesoft.org/schema/mule/salesforce/current/mule-salesforce.xsd http://www.mulesoft.org/schema/mule/netsuite http://www.mulesoft.org/schema/mule/netsuite/current/mule-netsuite.xsd 
 http://www.mulesoft.org/schema/mule/email http://www.mulesoft.org/schema/mule/email/current/mule-email.xsd 
 http://www.mulesoft.org/schema/mule/http http://www.mulesoft.org/schema/mule/http/current/mule-http.xsd http://www.mulesoft.org/schema/mule/core 
 http://www.mulesoft.org/schema/mule/core/current/mule.xsd
@@ -20,19 +22,42 @@ http://www.mulesoft.org/schema/mule/adtalem-core http://www.mulesoft.org/schema/
 http://www.mulesoft.org/schema/mule/secure-properties http://www.mulesoft.org/schema/mule/secure-properties/current/mule-secure-properties.xsd
 http://www.mulesoft.org/schema/mule/tls http://www.mulesoft.org/schema/mule/tls/current/mule-tls.xsd">
 	<configuration doc:name="Configuration"
-		doc:id="da15166a-5d9d-4b77-a80d-4743c6e90e45"
+		doc:id="544ee262-1f33-4a57-8911-1f0745023424"
 		defaultErrorHandler-ref="common-exception-handler" />
 	<configuration-properties
 		doc:name="Configuration properties"
-		doc:id="77d40699-0746-4cbf-a9b5-b9460b401894"
+		doc:id="83ce2d49-f47c-4a12-8802-c7b0a81b91aa"
 		file="properties/config-${mule.env}.yaml" />
-	<secure-properties:config name="Secure_Properties_Config" doc:name="Secure Properties Config" doc:id="94934815-b2cd-47da-986a-dd87cc29345a" file="properties/secure/config-${mule.env}-secure.yaml" key="${mule.key}" >
+	<secure-properties:config name="Secure_Properties_Config" doc:name="Secure Properties Config" doc:id="69ea0881-f8ca-414e-af9b-13cc2036f875" file="properties/secure/config-${mule.env}-secure.yaml" key="${mule.key}" >
 	</secure-properties:config>
 	<configuration-properties
 		doc:name="Configuration properties"
-		doc:id="dd661869-d2fe-461c-85f2-4dd2c7f7243f"
+		doc:id="fe064674-3f83-44ff-8c40-ee04c545daf8"
 		file="properties\common\common.yaml" />
-	<http:listener-config name="development_template_listener_configuration" doc:name="HTTP Listener config" doc:id="894a0492-33c6-42a3-b67c-4bd112c8d1cf" >
+	<http:listener-config name="development_template_listener_configuration" doc:name="HTTP Listener config" doc:id="f89409cf-95ef-467d-be24-969184442cc1" >
 		<http:listener-connection host="${http.host}" port="${http.port}" readTimeout="${http.readTimeout}"/>
 	</http:listener-config>
+	
+	<!-- Salesforce Configuration -->
+	<salesforce:sfdc-config name="salesforce-config" doc:name="Salesforce Config" doc:id="687b568c-2014-4025-b464-4dab7967d521" 
+		readTimeout="${salesforce.readTimeout}">
+		<salesforce:basic-connection 
+			username="${salesforce.username}" 
+			password="${secure::salesforce.password}" 
+			securityToken="${secure::salesforce.securityToken}" 
+			url="${salesforce.url}"/>
+	</salesforce:sfdc-config>
+	
+	<!-- NetSuite Configuration -->
+	<netsuite:config name="netsuite-config" doc:name="NetSuite Config" doc:id="faa83bcd-dda0-4c56-906b-d47208414f77">
+		<netsuite:token-based-authentication-connection 
+			account="${netsuite.account}"
+			consumerKey="${netsuite.consumerKey}"
+			consumerSecret="${secure::netsuite.consumerSecret}"
+			tokenId="${netsuite.tokenId}"
+			tokenSecret="${secure::netsuite.tokenSecret}"
+			baseAddress="${netsuite.baseAddress}"
+			readTimeout="${netsuite.readTimeout}"
+			connectionTimeout="${netsuite.connectionTimeout}"/>
+	</netsuite:config>
 </mule>

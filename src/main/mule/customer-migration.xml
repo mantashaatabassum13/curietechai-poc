@@ -1,0 +1,172 @@
+<?xml version="1.0" encoding="UTF-8"?>
+
+<mule xmlns:ee="http://www.mulesoft.org/schema/mule/ee/core"
+	xmlns:salesforce="http://www.mulesoft.org/schema/mule/salesforce"
+	xmlns:netsuite="http://www.mulesoft.org/schema/mule/netsuite"
+	xmlns:http="http://www.mulesoft.org/schema/mule/http"
+	xmlns="http://www.mulesoft.org/schema/mule/core"
+	xmlns:doc="http://www.mulesoft.org/schema/mule/documentation"
+	xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+	xsi:schemaLocation="
+http://www.mulesoft.org/schema/mule/ee/core http://www.mulesoft.org/schema/mule/ee/core/current/mule-ee.xsd
+http://www.mulesoft.org/schema/mule/salesforce http://www.mulesoft.org/schema/mule/salesforce/current/mule-salesforce.xsd
+http://www.mulesoft.org/schema/mule/netsuite http://www.mulesoft.org/schema/mule/netsuite/current/mule-netsuite.xsd
+http://www.mulesoft.org/schema/mule/http http://www.mulesoft.org/schema/mule/http/current/mule-http.xsd
+http://www.mulesoft.org/schema/mule/core http://www.mulesoft.org/schema/mule/core/current/mule.xsd">
+
+	<!-- Main Customer Migration Flow -->
+	<flow name="customer-migration-flow" doc:id="17245ada-06c7-48e0-b7cd-57965309f10d">
+		<http:listener doc:name="HTTP Listener" doc:id="52fcced6-4c68-4c3b-bf2e-b99c703c4d3b" 
+			config-ref="development_template_listener_configuration" 
+			path="/customer" 
+			allowedMethods="GET"/>
+		
+		<!-- Validate email parameter -->
+		<set-variable variableName="emailParam" value="#[attributes.queryParams.email default '']" 
+			doc:name="Set Email Parameter" doc:id="06744a66-8499-432b-a629-7d915afbc2d1"/>
+		
+		<choice doc:name="Validate Email Parameter" doc:id="9b64f190-d91d-46da-a407-7649b9c0be96">
+			<when expression="#[isEmpty(vars.emailParam)]">
+				<set-payload value='{"error": "Email parameter is required"}' doc:name="Set Error Payload" doc:id="7d4b44fb-ac67-4ff2-b6d1-0f07be8fd4df"/>
+				<set-variable variableName="httpStatus" value="400" doc:name="Set HTTP Status 400" doc:id="90e895c1-251c-4340-9a34-804c8df4f185"/>
+				<logger level="WARN" doc:name="Log Missing Email" doc:id="baee8468-0d11-4296-ba6a-b8ecf0f0c44d" 
+					message="Customer migration request missing email parameter"/>
+			</when>
+			<otherwise>
+				<logger level="INFO" doc:name="Log Request" doc:id="546f5a3d-edb0-4485-8933-02d727c13c6a" 
+					message="Starting customer migration for email: #[vars.emailParam]"/>
+				
+				<!-- Query Salesforce for Account data -->
+				<salesforce:query doc:name="Query Salesforce Accounts" doc:id="7db5fda9-0b64-4728-8cb6-96e217b09e04" 
+					config-ref="salesforce-config">
+					<salesforce:salesforce-query><![CDATA[SELECT Id, Name, PersonEmail, Phone FROM Account WHERE PersonEmail = ':email']]></salesforce:salesforce-query>
+					<salesforce:parameters><![CDATA[#[output application/java
+---
+{
+	"email": vars.emailParam
+}]]]></salesforce:parameters>
+				</salesforce:query>
+				
+				<choice doc:name="Check Salesforce Results" doc:id="dcac0db8-40c4-427d-8e3c-58f254407039">
+					<when expression="#[isEmpty(payload)]">
+						<set-payload value='{"message": "No customer found with the provided email"}' 
+							doc:name="Set No Results Payload" doc:id="b80791af-38c2-4532-b1ed-c2a0ec7fc762"/>
+						<set-variable variableName="httpStatus" value="404" doc:name="Set HTTP Status 404" doc:id="fea539cd-f958-4bdb-b2d8-925084d4ec63"/>
+						<logger level="INFO" doc:name="Log No Results" doc:id="15c20b81-63c1-4380-80e9-e8044253fa38" 
+							message="No Salesforce account found for email: #[vars.emailParam]"/>
+					</when>
+					<otherwise>
+						<logger level="INFO" doc:name="Log Salesforce Results" doc:id="df24719c-e553-4358-850d-e3522bdf41ba" 
+							message="Found #[sizeOf(payload)] Salesforce account(s) for email: #[vars.emailParam]"/>
+						
+						<!-- Transform Salesforce data to NetSuite format -->
+						<ee:transform doc:name="Transform to NetSuite Format" doc:id="b29ea929-783b-4fce-886f-c3b71357cf34">
+							<ee:message>
+								<ee:set-payload resource="dwl/salesforce-to-netsuite-transform.dwl"/>
+							</ee:message>
+						</ee:transform>
+						
+						<logger level="DEBUG" doc:name="Log Transformed Data" doc:id="f1952a90-3499-4f9d-a1a6-c76c14c73a76" 
+							message="Transformed data for NetSuite: #[payload]"/>
+						
+						<!-- Insert into NetSuite -->
+						<try doc:name="Try NetSuite Insert" doc:id="9c331e07-a313-412c-9592-022d23a7a78f">
+							<netsuite:add doc:name="Add Customer to NetSuite" doc:id="538f7be8-6b41-4b97-aeb8-6cef41f3ce1f" 
+								config-ref="netsuite-config" type="customer">
+								<netsuite:message><![CDATA[#[payload]]]></netsuite:message>
+							</netsuite:add>
+							
+							<logger level="INFO" doc:name="Log Success" doc:id="58d85fdc-d41b-4b9f-8a5c-c7d2c313610e" 
+								message="Successfully migrated customer to NetSuite for email: #[vars.emailParam]"/>
+							
+							<ee:transform doc:name="Transform Success Response" doc:id="3ceb074c-70dd-448d-a557-ba189fa59c2f">
+								<ee:message>
+									<ee:set-payload><![CDATA[%dw 2.0
+output application/json
+---
+{
+	"status": "success",
+	"message": "Customer successfully migrated from Salesforce to NetSuite",
+	"email": vars.emailParam,
+	"netsuiteResponse": payload
+}]]></ee:set-payload>
+								</ee:message>
+							</ee:transform>
+							
+							<error-handler>
+								<on-error-propagate type="ANY" doc:name="On Error Propagate" doc:id="c46ebd06-2e1c-4456-9ecd-e093bb41e756">
+									<logger level="ERROR" doc:name="Log NetSuite Error" doc:id="2033da08-b6c4-48f3-b55e-b812c0f727d5" 
+										message="Failed to insert customer into NetSuite for email: #[vars.emailParam]. Error: #[error.description]"/>
+									
+									<ee:transform doc:name="Transform Error Response" doc:id="57662def-bb39-4701-a238-add8518274b6">
+										<ee:message>
+											<ee:set-payload><![CDATA[%dw 2.0
+output application/json
+---
+{
+	"status": "error",
+	"message": "Failed to migrate customer to NetSuite",
+	"email": vars.emailParam,
+	"error": error.description
+}]]></ee:set-payload>
+										</ee:message>
+									</ee:transform>
+									
+									<set-variable variableName="httpStatus" value="500" doc:name="Set HTTP Status 500" doc:id="f09bf45b-b774-4838-93d4-14c85d17eb2b"/>
+								</on-error-propagate>
+							</error-handler>
+						</try>
+					</otherwise>
+				</choice>
+			</otherwise>
+		</choice>
+		
+		<!-- Set HTTP Response Status -->
+		<set-variable variableName="httpStatus" value="#[vars.httpStatus default 200]" 
+			doc:name="Set Default HTTP Status" doc:id="e9455e87-374e-468d-a640-00a03fdecb17"/>
+		
+		<error-handler>
+			<on-error-propagate type="SALESFORCE:CONNECTIVITY" doc:name="Salesforce Connectivity Error" doc:id="0f3119ac-dd7d-4c6c-9649-3ca220b68e88">
+				<logger level="ERROR" doc:name="Log Salesforce Connectivity Error" doc:id="7093923d-f120-4cae-9915-d40060dac32d" 
+					message="Salesforce connectivity error for email: #[vars.emailParam]. Error: #[error.description]"/>
+				
+				<ee:transform doc:name="Transform Salesforce Error Response" doc:id="73a3f1fa-fde7-42a6-bab8-055d0ec3c3ef">
+					<ee:message>
+						<ee:set-payload><![CDATA[%dw 2.0
+output application/json
+---
+{
+	"status": "error",
+	"message": "Failed to connect to Salesforce",
+	"email": vars.emailParam,
+	"error": error.description
+}]]></ee:set-payload>
+					</ee:message>
+				</ee:transform>
+				
+				<set-variable variableName="httpStatus" value="503" doc:name="Set HTTP Status 503" doc:id="ed7b3bee-9f49-4329-991b-4d0b451de466"/>
+			</on-error-propagate>
+			
+			<on-error-propagate type="ANY" doc:name="General Error Handler" doc:id="4e4fe558-fe52-4e4a-95f3-7c4efe8a45c7">
+				<logger level="ERROR" doc:name="Log General Error" doc:id="41e7d106-3c44-4c0a-859f-5299563e0a64" 
+					message="General error in customer migration for email: #[vars.emailParam]. Error: #[error.description]"/>
+				
+				<ee:transform doc:name="Transform General Error Response" doc:id="4da6a485-ba01-46db-94d5-49ffd38ca46a">
+					<ee:message>
+						<ee:set-payload><![CDATA[%dw 2.0
+output application/json
+---
+{
+	"status": "error",
+	"message": "An unexpected error occurred during customer migration",
+	"email": vars.emailParam,
+	"error": error.description
+}]]></ee:set-payload>
+					</ee:message>
+				</ee:transform>
+				
+				<set-variable variableName="httpStatus" value="500" doc:name="Set HTTP Status 500 General" doc:id="3d2626df-8103-4e31-b3e0-8483e8e8c333"/>
+			</on-error-propagate>
+		</error-handler>
+	</flow>
+</mule>

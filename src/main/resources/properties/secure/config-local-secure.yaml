@@ -1,1 +1,11 @@
 # Local Secure Credentials
+
+# Salesforce Secure Properties
+salesforce:
+  password: "your_salesforce_password"
+  securityToken: "your_salesforce_security_token"
+
+# NetSuite Secure Properties
+netsuite:
+  consumerSecret: "your_consumer_secret"
+  tokenSecret: "your_token_secret"

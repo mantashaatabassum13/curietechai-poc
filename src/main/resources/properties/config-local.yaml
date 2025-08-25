@@ -4,3 +4,19 @@
 api:
   id: "0000"
   basePath: "/*"
+
+# Salesforce Configuration
+salesforce:
+  username: "mantasha_tabassum01@caeliusconsulting.com"
+  url: "https://login.salesforce.com/services/Soap/u/64.0"
+  readTimeout: "30000"
+  connectionTimeout: "30000"
+
+# NetSuite Configuration  
+netsuite:
+  account: "your_netsuite_account"
+  consumerKey: "your_consumer_key"
+  tokenId: "your_token_id"
+  baseAddress: "https://webservices.netsuite.com"
+  readTimeout: "30000"
+  connectionTimeout: "30000"
